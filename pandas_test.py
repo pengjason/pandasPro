@@ -3,6 +3,7 @@ import pandas as pd
 import requests
 
 import matplotlib.pyplot as plt
+from IPython.core.pylabtools import figsize
 plt.style.use('ggplot')
 # %matplotlib inline
 import numpy as np
@@ -106,7 +107,7 @@ sns.pairplot(df,hue='class')
 
 fig,ax = plt.subplots(2,2,figsize=(7,7))
 sns.set(style='white',palette='muted')
-sns.violinplot(x=dif['class'],y=df['sepal length'],ax=ax[0,0])
+sns.violinplot(x=df['class'],y=df['sepal length'],ax=ax[0,0])
 sns.violinplot(x=df['class'],y=df['sepal width'],ax=ax[0,1])
 sns.violinplot(x=df['class'],y=df['petal length'],ax=ax[1,0])
 sns.violinplot(x=df['class'],y=df['petal width'],ax=ax[1,1])
@@ -121,12 +122,58 @@ df
 df['wide petal'] = df['petal width'].apply(lambda v: 1 if v>= 1.3 else 0)
 df
 
-df['petal area'] = df.apply(lambda r : r['petallength']*r['petal width'],axis=1)
+df['petal area'] = df.apply(lambda r : r['petal length']*r['petal width'],axis=1)
 df
 
+df.applymap(lambda v: np.log(v) if isinstance(v, float) else v)
 
+df.groupby('class').mean()
 
+df.groupby('class').describe()
+df.groupby('petal width')['class'].unique().to_frame()
+
+df.groupby('class')['petal width'].agg({'delta': lambda x: x.max() - x.min(),'max':np.max,'min':np.min})
+
+fig,ax = plt.subplots(figsize=(7,7))
+ax.scatter(df['sepal width'][:50],df['sepal length'][:50])
+ax.set_ylabel('Sepal Length')
+ax.set_xlabel('Sepal Width')
+ax.set_title('Setosa Sepal Width vs . Sepal Length',fontsize=14,y=1.02)
+
+import statsmodels.api as sm
+y = df['sepal length'][:50]
+x = df['sepal width'][:50]
+X = sm.add_constant(x)
+results = sm.OLS(y,x).fit()
+print(results.summary())
+
+fig,ax = plt.subplots(figsize=(7,7))
+ax.plot(x,results.fittedvalues,label='regression line')
+ax.scatter(x,y,label='data point',color='r')
+ax.set_ylabel('Sepal Length')
+ax.set_xlabel('Sepal Width')
+ax.set_title('Setosa Sepal Width vs. Sepal Length',fontsize=14,y=1.02)
+ax.legend(loc=2)
+
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.cross_validation import train_test_split
+
+clf = RandomForestClassifier(max_depth=5,n_estimators=10)
+
+X = df.ix[:,:4]
+y = df.ix[:,4]
+
+X_train,X_test,y_train,y_test = train_test_split(X,y,test_size=0.3)
+clf.fit(X_train,y_train)
+y_pred = clf.predict(X_test)
+rf = pd.DataFrame(list(zip(y_pred,y_test)),columns=['predicted','actual'])
+rf['correct'] = rf.apply(lambda r: 1 if r['predicted']==r['actual'] else 0,axis=1)
+rf
+
+ratio = rf['correct'].sum()/rf['correct'].count()
+print(ratio)
+print(df)
 
 retval = os.getcwd()
 print('current dir:%s' %retval)
-print('test')
+print('test end')
