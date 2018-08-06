@@ -4,6 +4,7 @@ import requests
 
 import matplotlib.pyplot as plt
 from IPython.core.pylabtools import figsize
+from pandas.tests.groupby.test_function import test_size
 plt.style.use('ggplot')
 # %matplotlib inline
 import numpy as np
@@ -23,6 +24,12 @@ df = pd.read_csv(PATH+'iris.data',names=['sepal length','sepal width','petal len
 
 print(df.head())
 
+np.isnan
+if np.isnan(df).any():
+    print('has nan data')
+else:
+    print('data is good')
+    
 print(df['sepal length'])
 print(df.ix[:3,:2])
 print(df.ix[:3,[x for x in df.columns if 'width' in x]])
@@ -130,6 +137,7 @@ df.applymap(lambda v: np.log(v) if isinstance(v, float) else v)
 df.groupby('class').mean()
 
 df.groupby('class').describe()
+
 df.groupby('petal width')['class'].unique().to_frame()
 
 df.groupby('class')['petal width'].agg({'delta': lambda x: x.max() - x.min(),'max':np.max,'min':np.min})
@@ -163,8 +171,9 @@ clf = RandomForestClassifier(max_depth=5,n_estimators=10)
 X = df.ix[:,:4]
 y = df.ix[:,4]
 
+
 X_train,X_test,y_train,y_test = train_test_split(X,y,test_size=0.3)
-clf.fit(X_train,y_train)
+clf.fit(X_train,y_train.astype(str))
 y_pred = clf.predict(X_test)
 rf = pd.DataFrame(list(zip(y_pred,y_test)),columns=['predicted','actual'])
 rf['correct'] = rf.apply(lambda r: 1 if r['predicted']==r['actual'] else 0,axis=1)
@@ -173,6 +182,36 @@ rf
 ratio = rf['correct'].sum()/rf['correct'].count()
 print(ratio)
 print(df)
+
+f_importances = clf.feature_importances_
+f_names = df.columns[:4]
+f_std = np.std([tree.feature_importances_ for tree in clf.estimators_],axis=0)
+
+zz = zip(f_importances,f_names,f_std)
+zzs = sorted(zz,key=lambda x: x[0],reverse=True)
+imps = [x[0] for x in zzs]
+labels = [x[1] for x in zzs]
+errs = [x[2] for x in zzs]
+plt.bar(range(len(f_importances)),imps,color='r',yerr=errs,align='center')
+plt.xticks(range(len(f_importances)),labels)
+
+from sklearn.multiclass import OneVsRestClassifier
+from sklearn.svm import SVC
+from sklearn.cross_validation import train_test_split
+
+clf = OneVsRestClassifier(SVC(kernel='linear'))
+
+X = df.ix[:,:4]
+y = np.array(df.ix[:,4]).astype(str)
+X_train,X_test,y_train,y_test = train_test_split(X,y,test_size=0.3)
+clf.fit(X_train,y_train)
+y_pred = clf.predict(X_test)
+rf = pd.DataFrame(list(zip(y_pred,y_test)),columns=['predicted','actual'])
+rf['correct'] = rf.apply(lambda r: 1 if r['predicted'] == r['actual'] else 0,axis=1)
+rf
+
+rf['correct'].sum()/rf['correct'].count()
+
 
 retval = os.getcwd()
 print('current dir:%s' %retval)
