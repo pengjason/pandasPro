@@ -4,7 +4,7 @@ import requests
 
 import matplotlib.pyplot as plt
 from IPython.core.pylabtools import figsize
-from pandas.tests.groupby.test_function import test_size
+
 plt.style.use('ggplot')
 # %matplotlib inline
 import numpy as np
